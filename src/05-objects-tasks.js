@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.width * this.height;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,92 +53,175 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  return new proto.constructor(...Object.values(JSON.parse(json)));
 }
 
-
 /**
- * Css selectors builder
- *
- * Each complex selector can consists of type, id, class, attribute, pseudo-class
- * and pseudo-element selectors:
- *
- *    element#id.class[attr]:pseudoClass::pseudoElement
- *              \----/\----/\----------/
- *              Can be several occurrences
- *
- * All types of selectors can be combined using the combination ' ','+','~','>' .
- *
- * The task is to design a single class, independent classes or classes hierarchy
- * and implement the functionality to build the css selectors using the provided cssSelectorBuilder.
- * Each selector should have the stringify() method to output the string representation
- * according to css specification.
- *
- * Provided cssSelectorBuilder should be used as facade only to create your own classes,
- * for example the first method of cssSelectorBuilder can be like this:
- *   element: function(value) {
- *       return new MySuperBaseElementSelector(...)...
- *   },
- *
- * The design of class(es) is totally up to you, but try to make it as simple,
- * clear and readable as possible.
- *
- * @example
- *
- *  const builder = cssSelectorBuilder;
- *
- *  builder.id('main').class('container').class('editable').stringify()
- *    => '#main.container.editable'
- *
- *  builder.element('a').attr('href$=".png"').pseudoClass('focus').stringify()
- *    => 'a[href$=".png"]:focus'
- *
- *  builder.combine(
- *      builder.element('div').id('main').class('container').class('draggable'),
- *      '+',
- *      builder.combine(
- *          builder.element('table').id('data'),
- *          '~',
- *           builder.combine(
- *               builder.element('tr').pseudoClass('nth-of-type(even)'),
- *               ' ',
- *               builder.element('td').pseudoClass('nth-of-type(even)')
- *           )
- *      )
- *  ).stringify()
- *    => 'div#main.container.draggable + table#data ~ tr:nth-of-type(even)   td:nth-of-type(even)'
- *
- *  For more examples see unit tests.
- */
+   * Css selectors builder
+   *
+   * Each complex selector can consists of type, id, class, attribute, pseudo-class
+   * and pseudo-element selectors:
+   *
+   *    element#id.class[attr]:pseudoClass::pseudoElement
+   *              \----/\----/\----------/
+   *              Can be several occurrences
+   *
+   * All types of selectors can be combined using the combination ' ','+','~','>' .
+   *
+   * The task is to design a single class, independent classes or classes hierarchy
+   * and implement the functionality to build the css selectors
+   * using the provided cssSelectorBuilder.
+   * Each selector should have the stringify() method to output the string representation
+   * according to css specification.
+   *
+   * Provided cssSelectorBuilder should be used as facade only to create your own classes,
+   * for example the first method of cssSelectorBuilder can be like this:
+   *   element: function(value) {
+   *       return new MySuperBaseElementSelector(...)...
+   *   },
+   *
+   * The design of class(es) is totally up to you, but try to make it as simple,
+   * clear and readable as possible.
+   *
+   * @example
+   *
+   *  const builder = cssSelectorBuilder;
+   *
+   *  builder.id('main').class('container').class('editable').stringify()
+   *    => '#main.container.editable'
+   *
+   *  builder.element('a').attr('href$=".png"').pseudoClass('focus').stringify()
+   *    => 'a[href$=".png"]:focus'
+   *
+   *  builder.combine(
+   *      builder.element('div').id('main').class('container').class('draggable'),
+   *      '+',
+   *      builder.combine(
+   *          builder.element('table').id('data'),
+   *          '~',
+   *           builder.combine(
+   *               builder.element('tr').pseudoClass('nth-of-type(even)'),
+   *               ' ',
+   *               builder.element('td').pseudoClass('nth-of-type(even)')
+   *           )
+   *      )
+   *  ).stringify()
+   *    => 'div#main.container.draggable + table#data ~ tr:nth-of-type(even)   td:nth-of-type(even)'
+   *
+   *  For more examples see unit tests.
+   */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  order: 0,
+  selector: '',
+
+  element(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 1,
+      },
+      selector: {
+        value: `${this.selector}${value}`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    this.isCorrectInsertion(el.order);
+    return el;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 2,
+      },
+      selector: {
+        value: `${this.selector}#${value}`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    this.isCorrectInsertion(el.order);
+    return el;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 3,
+      },
+      selector: {
+        value: `${this.selector}.${value}`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    return el;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 4,
+      },
+      selector: {
+        value: `${this.selector}[${value}]`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    return el;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 5,
+      },
+      selector: {
+        value: `${this.selector}:${value}`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    return el;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    const el = Object.create(this, {
+      order: {
+        value: 6,
+      },
+      selector: {
+        value: `${this.selector}::${value}`,
+      },
+    });
+    this.isCorrectOrder(el.order);
+    this.isCorrectInsertion(el.order);
+    return el;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const el = Object.create(this, {
+      selector: {
+        value: `${selector1.selector} ${combinator} ${selector2.selector}`,
+      },
+    });
+    return el;
+  },
+
+  stringify() {
+    return this.selector;
+  },
+
+  isCorrectOrder(elementOrder) {
+    if (this.order > elementOrder) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    return true;
+  },
+
+  isCorrectInsertion(elementOrder) {
+    if (this.order === elementOrder) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    return true;
   },
 };
 
